@@ -1,14 +1,16 @@
 import scipy
-from scipy import sparse, random
+from scipy import random
 from sklearn.datasets import fetch_20newsgroups
-from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
+from sklearn.metrics.pairwise import euclidean_distances
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from tensorflow.examples.tutorials.mnist import input_data
 
 from HW2 import DATA_DIR
+
+TEST = 'test'
+TRAIN = 'train'
 
 
 class Kmeans(object):
@@ -20,12 +22,14 @@ class Kmeans(object):
     TOLERANCE = 1.e-5
     SIZE = None
     is_distance_based = True
+    mode = TEST
 
-    def __init__(self, k=10):
+    def __init__(self, k=10, mode=TEST):
         """
         :param k(int): number of clusters to consider default 10
         """
         self.K = k
+        self.mode = mode
         self.initialize()
         self.start()
 
@@ -89,16 +93,6 @@ class Kmeans(object):
         purity = purity / self.SIZE
         return purity, gini_coef
 
-    def create_dir(self):
-        # # clean dir
-        # # add folder for each centroid
-        # distances = euclidean_distances(self.vectors, self.centroids).argmin(axis=1)
-        # for i in range(self.K):
-        #     indexes = np.argwhere(distances == i)
-        #     data = self.vectors[indexes.transpose()[0]]
-        # # write to dir
-        pass
-
 
 class MNIST_Kmeans(Kmeans):
     @staticmethod
@@ -119,17 +113,21 @@ class MNIST_Kmeans(Kmeans):
 
     def init_vectors(self):
         MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
-        self.labels = MNIST.train.labels
-        self.vectors = MNIST.train.images
+        self.labels = MNIST.train.labels if self.mode == TRAIN else MNIST.test.labels
+        self.vectors = MNIST.train.images if self.mode == TRAIN else MNIST.test.images
 
 
 class NG_Kmeans(Kmeans):
     def init_vectors(self):
-        NEWS_DATA = fetch_20newsgroups(data_home=DATA_DIR,subset='train', remove=('headers', 'footers', 'quotes'), )
+        NEWS_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset=self.mode, remove=('headers', 'footers', 'quotes'), )
         self.labels = NEWS_DATA.target
-        # test 4, 0.6
-        # train 4,0.7
-        self.vectors = TfidfVectorizer(stop_words='english',min_df=4,max_df=0.7).fit_transform(NEWS_DATA.data).todense()
+        min_df = 3
+        max_df = 0.6
+        if self.mode == TRAIN:
+            min_df = 4
+            max_df = 0.8
+        self.vectors = TfidfVectorizer(stop_words='english', min_df=min_df, max_df=max_df).fit_transform(
+            NEWS_DATA.data).todense()
 
 
 class FMNIST_Kmeans(Kmeans):
@@ -145,20 +143,31 @@ class FMNIST_Kmeans(Kmeans):
 
     def init_vectors(self):
         print "Loading data"
-        FMNIST = np.genfromtxt(DATA_DIR + '/fashionmnist/fashion-mnist_train.csv', delimiter=',')
+        FMNIST = np.genfromtxt(DATA_DIR + '/fashionmnist/fashion-mnist_' + self.mode + '.csv', delimiter=',')
         print "Data loaded"
         self.labels = FMNIST[1:-1, 0].astype(int)
         self.vectors = FMNIST[1:-1, 1:]
 
 
 if __name__ == '__main__':
-    # print "Starting with MNSIT data"
-    # MNIST_Kmeans()
-    # print "------------------------"
+    print "Starting with MNSIT data"
+    print 'mode: test'
+    MNIST_Kmeans()
+    print "------------------------"
+    print 'mode: train'
+    MNIST_Kmeans(mode=TRAIN)
+    print "------------------------"
     print "Starting with news group data"
+    print 'mode: test'
     NG_Kmeans(20)
-    # print "------------------------"
-    # print "Starting with fashion data"
-    # FMNIST_Kmeans()
-    # print "------------------------"
-
+    print "------------------------"
+    print 'mode: train'
+    NG_Kmeans(k=20, mode=TRAIN)
+    print "------------------------"
+    print "Starting with fashion data"
+    print 'mode: test'
+    FMNIST_Kmeans()
+    print "------------------------"
+    print 'mode: train'
+    FMNIST_Kmeans(mode=TRAIN)
+    print "------------------------"
