@@ -57,7 +57,9 @@ class GMM(object):
         for j in range(self.K):
             self.p_clus[:, j] = self.weights[j] * np.apply_along_axis(
                 lambda x: stats.multivariate_normal.pdf(x=x, cov=self.sigma[j], mean=self.mu[j]), 1, self.X)
-        self.p_clus = self.p_clus / self.p_clus.sum(axis=1)[:, None]
+        tmp =  self.p_clus.sum(axis=1)
+        tmp[tmp==0]=1
+        self.p_clus = self.p_clus / tmp[:, None]
 
     def maximisation(self):
         for i in range(self.K):
@@ -85,18 +87,15 @@ class GMM(object):
             print(pos[i])
 
 
-# class SGMM(GMM):
-#     # TOLERANCE = 1.e-5
-#
-#     def file_to_vec(self, path):
-#         print "Loading data"
-#         from tensorflow.examples.tutorials.mnist import input_data
-#         data = input_data.read_data_sets(DATA_DIR + '/fashion',
-#                                          source_url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/')
-#
-#         # FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
-#         print "Data loaded"
-#         return data.test.images
+class SGMM(GMM):
+    TOLERANCE = 1.e-3
+
+    def file_to_vec(self, path):
+        print "Loading data"
+        from tensorflow.examples.tutorials.mnist import input_data
+        FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
+        print "Data loaded"
+        return FMNIST[:,:-1]
 
 def gmm_fashion():
     from tensorflow.examples.tutorials.mnist import input_data
@@ -105,20 +104,29 @@ def gmm_fashion():
                                      source_url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/')
 
     print("data loaded")
-    gmm = mixture.GaussianMixture(n_components=20, covariance_type='full')
-    gmm.fit(data.test.images)
+    gmm = mixture.GaussianMixture(n_components=10, covariance_type='diag')
+    gmm.fit(data.train.images)
     print gmm.covariances_
     print gmm.means_
-    print np.mean(gmm.predict(data.test.images).ravel() == data.test.labels.ravel()) * 100
+    print np.mean(gmm.predict(data.train.images).ravel() == data.train.labels.ravel())
+
+    # running Spam emails
+    print("running spam emails")
+    gmm = mixture.GaussianMixture(n_components=2, covariance_type='diag')
+    FMNIST = np.genfromtxt(DATA_DIR + '/spambase.data', delimiter=',')
+    gmm.fit(FMNIST[:, :-1])
+    print gmm.covariances_
+    print gmm.means_
+    print(np.mean(gmm.predict(FMNIST[:, :-1]).ravel() == FMNIST[:,[-1]].ravel()))
+
 
 
 if __name__ == '__main__':
-    # print("2gaussian.txt")
-    # g = GMM()
-    # g.start()
-    # print("3gaussian.txt")
-    # g = GMM(k=3, path="3gaussian.txt")
-    # g.start()
+    print("2gaussian.txt")
+    g = GMM()
+    g.start()
+    print("3gaussian.txt")
+    g = GMM(k=3, path="3gaussian.txt")
+    g.start()
+    print("Question 4")
     gmm_fashion()
-    # g = FGMM(k=20, path="/fashionmnist/fashion-mnist_test.csv")
-    # g.start()
