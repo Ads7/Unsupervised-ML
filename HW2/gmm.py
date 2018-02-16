@@ -16,15 +16,6 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 
-class Gaussian(object):
-    def __init__(self, mu, sigma):
-        self.mu = mu
-        self.sigma = sigma
-
-    def pdf(self, data):
-        u = (data - self.mu) / abs(self.sigma)
-
-
 class GMM(object):
     SIZE = None
     MAX_ITR = 100
@@ -38,6 +29,7 @@ class GMM(object):
     p_clus = None
 
     def __init__(self, k=2, path="2gaussian.txt"):
+        self.TOLERANCE = 1.e-5
         self.K = k
         self.X = self.file_to_vec(path)
         self.SIZE, self.dimension = self.X.shape
@@ -52,35 +44,48 @@ class GMM(object):
 
     def file_to_vec(self, path):
         print "Loading data"
-        return np.genfromtxt(DATA_DIR + '/' + path, delimiter=' ')
+        vectors = np.genfromtxt(DATA_DIR + '/' + path, delimiter=' ')
         print "Data loaded"
+        return vectors
 
-    def pdf(self, sigma, mu, x):
-        return (1.0 / np.sqrt(((2 * np.pi) ** self.dimension / 2) * np.linalg.det(sigma))) * np.exp(
-            -0.5 * (x-mu).dot(np.linalg.inv(sigma)).dot((x-mu).T))
-
+    # def pdf(self, sigma, mu, x):
+    #     stats.multivariate_normal.pdf(x=x,sigma)
+    #     return (1.0 / np.sqrt(((2 * np.pi) ** self.dimension / 2) * np.linalg.det(sigma))) * np.exp(
+    #         -0.5 * (x-mu).dot(np.linalg.inv(sigma)).dot((x-mu).T))
 
     def expectation(self):
 
         for i in range(self.SIZE):
             for j in range(self.K):
-                self.p_clus[i][j] = self.weights[j] * self.pdf(sigma=self.sigma[j], mu=self.mu[j], x=self.X[[i]])
-        self.p_clus = self.p_clus / self.p_clus.sum(axis=0,keepdims=True)
+                self.p_clus[i][j] = self.weights[j] * stats.multivariate_normal.pdf(x=self.X[[i]], cov=
+                self.sigma[j], mean=self.mu[j])
+        for i in range(self.SIZE):
+            self.p_clus[i] = self.p_clus[i] / self.p_clus[i].sum()
 
     def maximisation(self):
         for i in range(self.K):
-            p = self.p_clus[:, i]
+            p = self.p_clus[:, [i]]
             self.mu[i] = np.sum(p * self.X, axis=0) / np.sum(p)
             self.weights[i] = np.sum(p) / self.SIZE
-            self.sigma[i] = (1 / np.sum(p)) * np.sum(p * (self.X - self.mu[i]) * np.transpose(self.X - self.mu[i]))
+
+            tmp = self.X - self.mu[i]
+            self.sigma[i] = np.dot(np.transpose(tmp), np.multiply(tmp, p)) / np.sum(p)
 
     def start(self):
         ex = 0
         while ex < self.MAX_ITR:
+            old = self.p_clus.copy()
             self.expectation()
             self.maximisation()
+            if np.allclose(self.p_clus, old,atol=self.TOLERANCE):
+                break
             ex += 1
-        print self.mu
+        pos = np.bincount(np.argmax(self.p_clus,axis=1))
+        print 'iterations taken: ',ex
+        for i in range(self.K):
+            print self.mu[i]
+            print self.sigma[i]
+            print(pos[i])
 
 
 if __name__ == '__main__':
