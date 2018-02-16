@@ -23,13 +23,13 @@ class GMM(object):
     mu = None  # means
     sigma = None  # variance
     weights = []
+    TOLERANCE = 1.e-5
     X = None
     dimension = None
     K = 2
     p_clus = None
 
     def __init__(self, k=2, path="2gaussian.txt"):
-        self.TOLERANCE = 1.e-5
         self.K = k
         self.X = self.file_to_vec(path)
         self.SIZE, self.dimension = self.X.shape
@@ -55,19 +55,17 @@ class GMM(object):
 
     def expectation(self):
 
-        for i in range(self.SIZE):
-            for j in range(self.K):
+        for j in range(self.K):
+            for i in range(self.SIZE):
                 self.p_clus[i][j] = self.weights[j] * stats.multivariate_normal.pdf(x=self.X[[i]], cov=
                 self.sigma[j], mean=self.mu[j])
-        for i in range(self.SIZE):
-            self.p_clus[i] = self.p_clus[i] / self.p_clus[i].sum()
+        self.p_clus= self.p_clus/ self.p_clus.sum(axis=1)[:, None]
 
     def maximisation(self):
         for i in range(self.K):
             p = self.p_clus[:, [i]]
             self.mu[i] = np.sum(p * self.X, axis=0) / np.sum(p)
             self.weights[i] = np.sum(p) / self.SIZE
-
             tmp = self.X - self.mu[i]
             self.sigma[i] = np.dot(np.transpose(tmp), np.multiply(tmp, p)) / np.sum(p)
 
@@ -77,17 +75,33 @@ class GMM(object):
             old = self.p_clus.copy()
             self.expectation()
             self.maximisation()
-            if np.allclose(self.p_clus, old,atol=self.TOLERANCE):
+            if np.allclose(self.p_clus, old, atol=self.TOLERANCE):
                 break
             ex += 1
-        pos = np.bincount(np.argmax(self.p_clus,axis=1))
-        print 'iterations taken: ',ex
+        pos = np.bincount(np.argmax(self.p_clus, axis=1))
+        print 'iterations taken: ', ex
         for i in range(self.K):
             print self.mu[i]
             print self.sigma[i]
             print(pos[i])
 
 
+class FGMM(GMM):
+    # TOLERANCE = 1.e-5
+
+    def file_to_vec(self, path):
+        print "Loading data"
+        FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
+        print "Data loaded"
+        return FMNIST[1:-1, 1:]
+
+
 if __name__ == '__main__':
+    # print("2gaussian.txt")
     g = GMM()
     g.start()
+    # print("3gaussian.txt")
+    # g = GMM(k=3, path="3gaussian.txt")
+    # g.start()
+    # g = FGMM(k=20, path="/fashionmnist/fashion-mnist_test.csv")
+    # g.start()
