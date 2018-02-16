@@ -85,18 +85,31 @@ class GMM(object):
             print(pos[i])
 
 
-class FGMM(GMM):
-    # TOLERANCE = 1.e-5
+# class SGMM(GMM):
+#     # TOLERANCE = 1.e-5
+#
+#     def file_to_vec(self, path):
+#         print "Loading data"
+#         from tensorflow.examples.tutorials.mnist import input_data
+#         data = input_data.read_data_sets(DATA_DIR + '/fashion',
+#                                          source_url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/')
+#
+#         # FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
+#         print "Data loaded"
+#         return data.test.images
 
-    def file_to_vec(self, path):
-        print "Loading data"
-        from tensorflow.examples.tutorials.mnist import input_data
-        data = input_data.read_data_sets(DATA_DIR + '/fashion',
-                                         source_url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/')
+def gmm_fashion():
+    from tensorflow.examples.tutorials.mnist import input_data
+    print("loading ...")
+    data = input_data.read_data_sets(DATA_DIR + '/fashion',
+                                     source_url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/')
 
-        # FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
-        print "Data loaded"
-        return data.test.images
+    print("data loaded")
+    gmm = mixture.GaussianMixture(n_components=20, covariance_type='full')
+    gmm.fit(data.test.images)
+    print gmm.covariances_
+    print gmm.means_
+    print np.mean(gmm.predict(data.test.images).ravel() == data.test.labels.ravel()) * 100
 
 
 if __name__ == '__main__':
@@ -106,5 +119,6 @@ if __name__ == '__main__':
     # print("3gaussian.txt")
     # g = GMM(k=3, path="3gaussian.txt")
     # g.start()
-    g = FGMM(k=20, path="/fashionmnist/fashion-mnist_test.csv")
-    g.start()
+    gmm_fashion()
+    # g = FGMM(k=20, path="/fashionmnist/fashion-mnist_test.csv")
+    # g.start()
