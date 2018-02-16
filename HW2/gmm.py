@@ -23,7 +23,7 @@ class GMM(object):
     mu = None  # means
     sigma = None  # variance
     weights = []
-    TOLERANCE = 1.e-5
+    TOLERANCE = 1.e-4
     X = None
     dimension = None
     K = 2
@@ -54,12 +54,10 @@ class GMM(object):
     #         -0.5 * (x-mu).dot(np.linalg.inv(sigma)).dot((x-mu).T))
 
     def expectation(self):
-
         for j in range(self.K):
-            for i in range(self.SIZE):
-                self.p_clus[i][j] = self.weights[j] * stats.multivariate_normal.pdf(x=self.X[[i]], cov=
-                self.sigma[j], mean=self.mu[j])
-        self.p_clus= self.p_clus/ self.p_clus.sum(axis=1)[:, None]
+            self.p_clus[:, j] = self.weights[j] * np.apply_along_axis(
+                lambda x: stats.multivariate_normal.pdf(x=x, cov=self.sigma[j], mean=self.mu[j]), 1, self.X)
+        self.p_clus = self.p_clus / self.p_clus.sum(axis=1)[:, None]
 
     def maximisation(self):
         for i in range(self.K):
@@ -78,6 +76,7 @@ class GMM(object):
             if np.allclose(self.p_clus, old, atol=self.TOLERANCE):
                 break
             ex += 1
+            print ex
         pos = np.bincount(np.argmax(self.p_clus, axis=1))
         print 'iterations taken: ', ex
         for i in range(self.K):
@@ -91,17 +90,21 @@ class FGMM(GMM):
 
     def file_to_vec(self, path):
         print "Loading data"
-        FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
+        from tensorflow.examples.tutorials.mnist import input_data
+        data = input_data.read_data_sets(DATA_DIR + '/fashion',
+                                         source_url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/')
+
+        # FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
         print "Data loaded"
-        return FMNIST[1:-1, 1:]
+        return data.test.images
 
 
 if __name__ == '__main__':
     # print("2gaussian.txt")
-    g = GMM()
-    g.start()
+    # g = GMM()
+    # g.start()
     # print("3gaussian.txt")
     # g = GMM(k=3, path="3gaussian.txt")
     # g.start()
-    # g = FGMM(k=20, path="/fashionmnist/fashion-mnist_test.csv")
-    # g.start()
+    g = FGMM(k=20, path="/fashionmnist/fashion-mnist_test.csv")
+    g.start()
