@@ -87,15 +87,30 @@ class GMM(object):
             print(pos[i])
 
 
-class SGMM(GMM):
-    TOLERANCE = 1.e-3
+# class SGMM(GMM):
+#     TOLERANCE = 1.e-3
+#
+#     def file_to_vec(self, path):
+#         print "Loading data"
+#         FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
+#         print "Data loaded"
+#         return FMNIST[:,:-1]
 
-    def file_to_vec(self, path):
-        print "Loading data"
-        from tensorflow.examples.tutorials.mnist import input_data
-        FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
-        print "Data loaded"
-        return FMNIST[:,:-1]
+def cal_purity(distances,K,labels,SIZE,check=False):
+    """
+    :return: : returns the purity and the gini coeff
+    :rtype: float,float
+    """
+    purity = 0.0
+    for i in range(K):
+        indexes = np.argwhere(distances == i)
+        if check:
+            counts = np.bincount(labels[indexes.transpose()[0]].transpose()[0].astype('int64'))
+        else:
+            counts = np.bincount(labels[indexes.transpose()[0]])
+        purity += counts.max()
+    purity = purity / SIZE
+    return purity
 
 def gmm_fashion():
     from tensorflow.examples.tutorials.mnist import input_data
@@ -106,8 +121,10 @@ def gmm_fashion():
     print("data loaded")
     gmm = mixture.GaussianMixture(n_components=10, covariance_type='diag')
     gmm.fit(data.train.images)
-    print gmm.covariances_
-    print gmm.means_
+    print "cov",gmm.covariances_
+    print "mean",gmm.means_
+    print "purity",cal_purity(gmm.predict(data.train.images),10,data.train.labels,data.train.images.shape[0])
+    gmm.predict(data.train.images)
     print np.mean(gmm.predict(data.train.images).ravel() == data.train.labels.ravel())
 
     # running Spam emails
@@ -115,8 +132,9 @@ def gmm_fashion():
     gmm = mixture.GaussianMixture(n_components=2, covariance_type='diag')
     FMNIST = np.genfromtxt(DATA_DIR + '/spambase.data', delimiter=',')
     gmm.fit(FMNIST[:, :-1])
-    print gmm.covariances_
-    print gmm.means_
+    print "cov",gmm.covariances_
+    print "mean",gmm.means_
+    print "purity",cal_purity(gmm.predict(FMNIST[:, :-1]), 2, FMNIST[:,[-1]],FMNIST[:,[-1]].shape[0],True)
     print(np.mean(gmm.predict(FMNIST[:, :-1]).ravel() == FMNIST[:,[-1]].ravel()))
 
 
