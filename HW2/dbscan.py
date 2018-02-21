@@ -83,7 +83,7 @@ class DBSCAN(object):
         """
         # cal_purity(gmm.predict(FMNIST[:, :-1]), 2, FMNIST[:, [-1]], FMNIST[:, [-1]].shape[0], True)
         purity = 0.0
-        K = np.unique(prediction).shape[0]-1
+        K = np.unique(prediction).shape[0] - 1
         print(K)
         SIZE = labels.shape[0]
         for i in range(K):
@@ -103,23 +103,23 @@ class TOYDBSCAN(DBSCAN):
         return data
 
 
-# todo complete working of household, fashion and NG20
+# todo complete working of household
 class HOUSEDATA(DBSCAN):
     # Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;
     # Sub_metering_3
-    attr = [ 'Global_reactive_power', 'Voltage',
+    attr = ['Global_reactive_power', 'Voltage',
             'Global_intensity']
 
     def read(self, path):
         # .(global_active_power * 1000 / 60 - sub_metering_1 - sub_metering_2 - sub_metering_3)
         data = pd.read_csv(DATA_DIR + path, sep=';')
-        for att in self.attr+['Global_active_power','Sub_metering_1','Sub_metering_2']:
+        for att in self.attr + ['Global_active_power', 'Sub_metering_1', 'Sub_metering_2']:
             data = data[data[att] != '?']
             data[att] = pd.to_numeric(data[att])
         self.attr.append('x')
         data['x'] = data['Global_active_power'] * 1000 / 60 - (
                 data['Sub_metering_1'] + data['Sub_metering_2'] + data['Sub_metering_3'])
-        return data[self.attr].values
+        return data[self.attr].values[:10000,:]
 
 
 class NG20(DBSCAN):
@@ -149,40 +149,39 @@ def hierarchical_clustering():
 
 
 if __name__ == '__main__':
-    # print(" starting hierarchical_clustering")
-    # # hierarchical_clustering()
-    # print("DBSCAN toy data")
-    # dbs = DBSCAN(min_pt=3, esp=7.5)
-    # vectors = dbs.read('/dbscan.csv')
-    # labels = dbs.fit(vectors)
-    # dbs.visualise(labels, vectors)
-    # print("DBSCAN moon data")
-    # dbs = TOYDBSCAN(min_pt=2)
-    # vectors = dbs.fit(dbs.read('/moons.csv'))
-    # dbs.visualise(vectors, 'moon.png')
-    # print("DBSCAN circle data")
-    # dbs = TOYDBSCAN(min_pt=2, esp=0.18)
-    # vectors = dbs.fit(dbs.read('/circle.csv'))
-    # dbs.visualise(vectors, 'circle.png')
-    # print("DBSCAN blob data")
-    # dbs = TOYDBSCAN(esp=.37)
-    # vectors = dbs.fit(dbs.read('/blobs.csv'))
-    # dbs.visualise(vectors, 'blobs.png')
-    # print("DBSCAN NG20")
-    # dbs = NG20(min_pt=3, esp=.3)
-    # vectors, labels = dbs.read()
-    # pred_labels = dbs.fit(vectors)
-    # print silhouette_score(vectors, pred_labels.transpose()[0])
-    # dbs.cal_purity(pred_labels, labels)
-    # print("DBSCAN FASHIOND")
-    # dbs = FASHIOND(min_pt=2, esp=.3)
-    # vectors, labels = dbs.read()
-    # pred_labels = dbs.fit(vectors)
-    # print silhouette_score(vectors, pred_labels.transpose()[0])
-    # dbs.cal_purity(pred_labels, labels)
+    print(" starting hierarchical_clustering")
+    # hierarchical_clustering()
+    print("DBSCAN toy data")
+    dbs = DBSCAN(min_pt=3, esp=7.5)
+    vectors = dbs.read('/dbscan.csv')
+    labels = dbs.fit(vectors)
+    dbs.visualise(labels, vectors)
+    print("DBSCAN moon data")
+    dbs = TOYDBSCAN(min_pt=2)
+    vectors = dbs.fit(dbs.read('/moons.csv'))
+    dbs.visualise(vectors, 'moon.png')
+    print("DBSCAN circle data")
+    dbs = TOYDBSCAN(min_pt=2, esp=0.18)
+    vectors = dbs.fit(dbs.read('/circle.csv'))
+    dbs.visualise(vectors, 'circle.png')
+    print("DBSCAN blob data")
+    dbs = TOYDBSCAN(esp=.37)
+    vectors = dbs.fit(dbs.read('/blobs.csv'))
+    dbs.visualise(vectors, 'blobs.png')
+    print("DBSCAN NG20")
+    dbs = NG20(min_pt=3, esp=.3)
+    vectors, labels = dbs.read()
+    pred_labels = dbs.fit(vectors)
+    print silhouette_score(vectors, pred_labels.transpose()[0])
+    dbs.cal_purity(pred_labels, labels)
+    print("DBSCAN FASHIOND")
+    dbs = FASHIOND(min_pt=2, esp=.3)
+    vectors, labels = dbs.read()
+    pred_labels = dbs.fit(vectors)
+    print silhouette_score(vectors, pred_labels.transpose()[0])
+    dbs.cal_purity(pred_labels, labels)
     print("DBSCAN HouseHold")
     dbs = HOUSEDATA(min_pt=2, esp=.3)
     vectors = dbs.read('/household_power_consumption.txt')
     pred_labels = dbs.fit(vectors)
     print silhouette_score(vectors, pred_labels.transpose()[0])
-
