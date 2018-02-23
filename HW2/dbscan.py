@@ -10,8 +10,26 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-LABEL = 0
 NOISE = 99999
+DICT_DATA = {
+    "toy": dict(
+        path="/dbscan.csv",
+        esp=7.5,
+    ),
+    "moons": dict(
+        path='/moons.csv',
+        min_pt=2
+    ),
+    "circles": dict(
+        path="/circle.csv",
+        esp=0.18,
+        min_pt=2
+    ),
+    "blobs": dict(
+        path="/blobs.csv",
+        esp=0.37,
+    )
+}
 
 
 class DBSCAN(object):
@@ -95,14 +113,6 @@ class DBSCAN(object):
         return purity
 
 
-class TOYDBSCAN(DBSCAN):
-
-    def read(self, path):
-        data = pd.read_csv(DATA_DIR + path)
-        data['cluster'] = np.nan
-        return data
-
-
 # todo complete working of household
 class HOUSEDATA(DBSCAN):
     # Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;
@@ -119,7 +129,7 @@ class HOUSEDATA(DBSCAN):
         self.attr.append('x')
         data['x'] = data['Global_active_power'] * 1000 / 60 - (
                 data['Sub_metering_1'] + data['Sub_metering_2'] + data['Sub_metering_3'])
-        return data[self.attr].values[:10000,:]
+        return data[self.attr].values[:10000, :]
 
 
 class NG20(DBSCAN):
@@ -149,25 +159,14 @@ def hierarchical_clustering():
 
 
 if __name__ == '__main__':
-    print(" starting hierarchical_clustering")
-    # hierarchical_clustering()
-    print("DBSCAN toy data")
-    dbs = DBSCAN(min_pt=3, esp=7.5)
-    vectors = dbs.read('/dbscan.csv')
-    labels = dbs.fit(vectors)
-    dbs.visualise(labels, vectors)
-    print("DBSCAN moon data")
-    dbs = TOYDBSCAN(min_pt=2)
-    vectors = dbs.fit(dbs.read('/moons.csv'))
-    dbs.visualise(vectors, 'moon.png')
-    print("DBSCAN circle data")
-    dbs = TOYDBSCAN(min_pt=2, esp=0.18)
-    vectors = dbs.fit(dbs.read('/circle.csv'))
-    dbs.visualise(vectors, 'circle.png')
-    print("DBSCAN blob data")
-    dbs = TOYDBSCAN(esp=.37)
-    vectors = dbs.fit(dbs.read('/blobs.csv'))
-    dbs.visualise(vectors, 'blobs.png')
+    for key in DICT_DATA:
+        print("DBSCAN for data: " + key)
+        dict_val = DICT_DATA[key]
+        dbs = DBSCAN(min_pt=dict_val.get('min_pt', 3), esp=dict_val.get('esp', 0.3))
+        vectors = dbs.read(dict_val.get('path'))
+        labels = dbs.fit(vectors)
+        dbs.visualise(labels, vectors, key + '.png')
+
     print("DBSCAN NG20")
     dbs = NG20(min_pt=3, esp=.3)
     vectors, labels = dbs.read()
@@ -185,3 +184,5 @@ if __name__ == '__main__':
     vectors = dbs.read('/household_power_consumption.txt')
     pred_labels = dbs.fit(vectors)
     print silhouette_score(vectors, pred_labels.transpose()[0])
+    print(" starting hierarchical_clustering")
+    hierarchical_clustering()
