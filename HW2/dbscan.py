@@ -1,4 +1,7 @@
 from sklearn.cluster import AgglomerativeClustering
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import euclidean_distances
 
 from HW2 import DATA_DIR
@@ -28,64 +31,67 @@ class DBSCAN(object):
 
         :type vectors: pandas object having attrs and a column cluster(labels)
         """
-        # todo can seperate the vectors as numpy array and labels
-        # todo update code as per numpy
-        dist_matrix = euclidean_distances(vectors[self.attr].values, vectors[self.attr].values)
-        C = 1
-        for i, pt in vectors.iterrows():
-            if vectors.at[i, 'cluster'] == NOISE or np.isnan(vectors.at[i, 'cluster']):
+
+        dist_matrix = euclidean_distances(vectors, vectors)
+        C = -1
+        labels = np.empty((vectors.shape[0], 1))
+        labels[:] = np.nan
+        for i in range(vectors.shape[0]):
+            if labels[i] == NOISE or np.isnan(labels[i]):
                 index = np.where(dist_matrix[i] < self.esp)[0].tolist()  # correct code get index
                 if len(index) < self.min_pt:
-                    vectors.at[i, 'cluster'] = NOISE
+                    labels[i] = NOISE
                 else:
-                    vectors.at[i, 'cluster'] = C
+                    C += 1
+                    labels[i] = C
                     q = index
                     while q:
                         j = q.pop()
-                        n_pt = vectors.loc[j]
-                        if n_pt['cluster'] == NOISE or np.isnan(n_pt['cluster']):
-                            vectors.at[j, 'cluster'] = C
+                        n_pt = labels[j]
+                        if n_pt == NOISE or np.isnan(n_pt):
+                            labels[j] = C
                             q.extend(np.where(dist_matrix[j] < self.esp)[0].tolist())
-                C += 1
-        return vectors
+        return labels
 
     def read(self, path):
-        return pd.read_csv(DATA_DIR + path)
+        return pd.read_csv(DATA_DIR + path)[self.attr].values
 
-    def visualise(self, vectors, name='img.png'):
+    def visualise(self, labels, vectors, name='img.png'):
         """
-
+        Only for two attribute datas
         :param vectors: pandas object having labels and vector values
         :param name: name for the image
         """
-        # todo visualisation to be updated as for numpy
         plt.figure()
-        unique_labels = vectors.cluster.unique().tolist()
+        unique_labels = np.unique(labels)
         colors = [plt.cm.Spectral(each)
                   for each in np.linspace(0, 1, len(unique_labels))]
         for k, col in zip(unique_labels, colors):
             if k == NOISE:
                 # Black used for noise.
                 col = [0, 0, 0, 1]
-            plt.plot(vectors[vectors.cluster == k].x.values.tolist(),
-                     vectors[vectors.cluster == k].y.values.tolist(),
+            plt.plot(vectors[np.where(labels == k), 0].tolist(),
+                     vectors[np.where(labels == k), 1].tolist(),
                      'o', markerfacecolor=tuple(col),
                      markeredgecolor='k', markersize=14)
         plt.savefig("img/" + name)
 
-    def cal_purity(self, K, prediction, labels):
+    def cal_purity(self, prediction, labels):
         """
         :return: : returns the purity and the gini coeff
         :rtype: float,float
         """
         # cal_purity(gmm.predict(FMNIST[:, :-1]), 2, FMNIST[:, [-1]], FMNIST[:, [-1]].shape[0], True)
         purity = 0.0
+        K = np.unique(prediction).shape[0] - 1
+        print(K)
         SIZE = labels.shape[0]
         for i in range(K):
             indexes = np.argwhere(prediction == i)
             counts = np.bincount(labels[indexes.transpose()[0]])
             purity += counts.max()
         purity = purity / SIZE
+        print purity
         return purity
 
 
@@ -97,47 +103,40 @@ class TOYDBSCAN(DBSCAN):
         return data
 
 
-# todo complete working of household, fashion and NG20
+# todo complete working of household
 class HOUSEDATA(DBSCAN):
     # Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;
     # Sub_metering_3
-    attr = ['x', 'Global_reactive_power', 'Voltage',
+    attr = ['Global_reactive_power', 'Voltage',
             'Global_intensity']
 
     def read(self, path):
         # .(global_active_power * 1000 / 60 - sub_metering_1 - sub_metering_2 - sub_metering_3)
         data = pd.read_csv(DATA_DIR + path, sep=';')
+        for att in self.attr + ['Global_active_power', 'Sub_metering_1', 'Sub_metering_2']:
+            data = data[data[att] != '?']
+            data[att] = pd.to_numeric(data[att])
+        self.attr.append('x')
         data['x'] = data['Global_active_power'] * 1000 / 60 - (
                 data['Sub_metering_1'] + data['Sub_metering_2'] + data['Sub_metering_3'])
-        data['cluster'] = np.nan
-        return data
+        return data[self.attr].values[:10000,:]
 
 
 class NG20(DBSCAN):
-    # Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;
-    # Sub_metering_3
-    attr = ['x', 'Global_reactive_power', 'Voltage',
-            'Global_intensity']
 
-    def read(self, path):
-        data = pd.read_csv(DATA_DIR + path)
-        data['cluster'] = np.nan
-        return data
+    def read(self, path=None):
+        NEWS_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset='test', remove=('headers', 'footers', 'quotes'), )
+        return TfidfVectorizer(stop_words='english', min_df=3, max_df=0.6).fit_transform(
+            NEWS_DATA.data).todense(), NEWS_DATA.target
 
 
 class FASHIOND(DBSCAN):
-    # Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;
-    # Sub_metering_3
-    attr = ['x', 'Global_reactive_power', 'Voltage',
-            'Global_intensity']
-
-    def read(self, path):
-        # .(global_active_power * 1000 / 60 - sub_metering_1 - sub_metering_2 - sub_metering_3)
-        data = pd.read_csv(DATA_DIR + path, sep=';')
-        data['x'] = data['Global_active_power'] * 1000 / 60 - (
-                data['Sub_metering_1'] + data['Sub_metering_2'] + data['Sub_metering_3'])
-        data['cluster'] = np.nan
-        return data
+    def read(self, path=None):
+        FMNIST = np.genfromtxt(DATA_DIR + '/fashionmnist/fashion-mnist_test.csv', delimiter=',')
+        print "Data loaded"
+        labels = FMNIST[1:-1, 0].astype(int)
+        vectors = FMNIST[1:-1, 1:]
+        return vectors, labels
 
 
 def hierarchical_clustering():
@@ -154,8 +153,9 @@ if __name__ == '__main__':
     # hierarchical_clustering()
     print("DBSCAN toy data")
     dbs = DBSCAN(min_pt=3, esp=7.5)
-    vectors = dbs.fit(dbs.read('/dbscan.csv'))
-    dbs.visualise(vectors)
+    vectors = dbs.read('/dbscan.csv')
+    labels = dbs.fit(vectors)
+    dbs.visualise(labels, vectors)
     print("DBSCAN moon data")
     dbs = TOYDBSCAN(min_pt=2)
     vectors = dbs.fit(dbs.read('/moons.csv'))
@@ -168,3 +168,20 @@ if __name__ == '__main__':
     dbs = TOYDBSCAN(esp=.37)
     vectors = dbs.fit(dbs.read('/blobs.csv'))
     dbs.visualise(vectors, 'blobs.png')
+    print("DBSCAN NG20")
+    dbs = NG20(min_pt=3, esp=.3)
+    vectors, labels = dbs.read()
+    pred_labels = dbs.fit(vectors)
+    print silhouette_score(vectors, pred_labels.transpose()[0])
+    dbs.cal_purity(pred_labels, labels)
+    print("DBSCAN FASHIOND")
+    dbs = FASHIOND(min_pt=2, esp=.3)
+    vectors, labels = dbs.read()
+    pred_labels = dbs.fit(vectors)
+    print silhouette_score(vectors, pred_labels.transpose()[0])
+    dbs.cal_purity(pred_labels, labels)
+    print("DBSCAN HouseHold")
+    dbs = HOUSEDATA(min_pt=2, esp=.3)
+    vectors = dbs.read('/household_power_consumption.txt')
+    pred_labels = dbs.fit(vectors)
+    print silhouette_score(vectors, pred_labels.transpose()[0])
