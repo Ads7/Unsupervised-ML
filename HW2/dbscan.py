@@ -118,17 +118,14 @@ class HOUSEDATA(DBSCAN):
     # Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;
     # Sub_metering_3
     attr = ['Global_reactive_power', 'Voltage',
-            'Global_intensity']
+            'Global_intensity','Global_active_power', 'Sub_metering_1', 'Sub_metering_2']
 
     def read(self, path):
         # .(global_active_power * 1000 / 60 - sub_metering_1 - sub_metering_2 - sub_metering_3)
         data = pd.read_csv(DATA_DIR + path, sep=';')
-        for att in self.attr + ['Global_active_power', 'Sub_metering_1', 'Sub_metering_2']:
+        for att in self.attr:
             data = data[data[att] != '?']
             data[att] = pd.to_numeric(data[att])
-        self.attr.append('x')
-        data['x'] = data['Global_active_power'] * 1000 / 60 - (
-                data['Sub_metering_1'] + data['Sub_metering_2'] + data['Sub_metering_3'])
         return data[self.attr].values[:10000, :]
 
 
@@ -179,7 +176,7 @@ if __name__ == '__main__':
     print silhouette_score(euclidean_distances(vectors,vectors), pred_labels.transpose()[0])
     dbs.cal_purity(pred_labels, labels)
     print("DBSCAN HouseHold")
-    dbs = HOUSEDATA(min_pt=2, esp=1.0)
+    dbs = HOUSEDATA(min_pt=2, esp=3.0)
     vectors = dbs.read('/household_power_consumption.txt')
     pred_labels = dbs.fit(vectors)
     print silhouette_score(euclidean_distances(vectors,vectors), pred_labels.transpose()[0])
