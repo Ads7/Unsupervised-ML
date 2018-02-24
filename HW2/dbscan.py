@@ -102,14 +102,14 @@ class DBSCAN(object):
         # cal_purity(gmm.predict(FMNIST[:, :-1]), 2, FMNIST[:, [-1]], FMNIST[:, [-1]].shape[0], True)
         purity = 0.0
         K = np.unique(prediction).shape[0] - 1
-        print(K)
+        print "clusters " + str(K)
         SIZE = labels.shape[0]
         for i in range(K):
             indexes = np.argwhere(prediction == i)
             counts = np.bincount(labels[indexes.transpose()[0]])
             purity += counts.max()
         purity = purity / SIZE
-        print purity
+        print "purity " + str(purity)
         return purity
 
 
@@ -166,21 +166,20 @@ if __name__ == '__main__':
         vectors = dbs.read(dict_val.get('path'))
         labels = dbs.fit(vectors)
         dbs.visualise(labels, vectors, key + '.png')
-
     print("DBSCAN NG20")
-    dbs = NG20(min_pt=3, esp=.3)
+    dbs = NG20(min_pt=3, esp=1.0)
     vectors, labels = dbs.read()
     pred_labels = dbs.fit(vectors)
     print silhouette_score(vectors, pred_labels.transpose()[0])
     dbs.cal_purity(pred_labels, labels)
     print("DBSCAN FASHIOND")
-    dbs = FASHIOND(min_pt=2, esp=.3)
+    dbs = FASHIOND(min_pt=2, esp=2200.0)
     vectors, labels = dbs.read()
     pred_labels = dbs.fit(vectors)
     print silhouette_score(vectors, pred_labels.transpose()[0])
     dbs.cal_purity(pred_labels, labels)
     print("DBSCAN HouseHold")
-    dbs = HOUSEDATA(min_pt=2, esp=.3)
+    dbs = HOUSEDATA(min_pt=2, esp=1.0)
     vectors = dbs.read('/household_power_consumption.txt')
     pred_labels = dbs.fit(vectors)
     print silhouette_score(vectors, pred_labels.transpose()[0])
