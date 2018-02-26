@@ -25,9 +25,9 @@ DICT_DATA = {
         esp=0.18,
         min_pt=2
     ),
-    "blobs": dict(
+    "blob": dict(
         path="/blobs.csv",
-        esp=0.37,
+        esp=0.30,
     )
 }
 
