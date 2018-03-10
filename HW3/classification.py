@@ -50,7 +50,7 @@ class Classify(object):
 
     def pca(self, D=(5, 20)):
         for d in D:
-            pca = PCA(n_components=5)
+            pca = PCA(n_components=d)
             X_new = pca.fit(self.X, self.Y)
             self.lr(X_new, self.Y, pca.transform(self.x_test), self.y_test)
 
@@ -60,12 +60,22 @@ class Classify(object):
         print("decision tree")
         self.decision_tree_param_tuner()
 
+    def custom_pca(self):
+        cov_mat = np.cov(self.X.T)
+        # cov mat of X vs X.T have diff time
+        eig_vals, eig_vecs = np.linalg.eig(cov_mat)
+        eig_pairs = [(np.abs(eig_vals[i]), eig_vecs[:, i]) for i in range(len(eig_vals))]
+        eig_pairs.sort(key=lambda x: x[0], reverse=True)
+        for d in [5, 20]:
+            w = np.hstack([x[1].reshape(784, 1) for x in eig_pairs[:d]])
+            self.lr(self.X.dot(w), self.Y, self.x_test.dot(w), self.y_test)
+
 
 def get_ng_vectors(mode='train'):
     NG_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset=mode, remove=('headers', 'footers', 'quotes'), )
     labels = NG_DATA.target
     vec = TfidfVectorizer(stop_words='english').fit_transform(NG_DATA.data).todense()
-    return vec, labels
+    return vec[:10000, :], labels[:10000, :]
 
 
 def spam_base():
@@ -78,15 +88,28 @@ def spam_base():
 
 
 if __name__ == '__main__':
+    # print("PROBLEM 1: Supervised Classification")
+    # print("MNIST")
+    # MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
+    # c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
+    # c.start()
+    # print("20 NG")
+    # x_train, y_train = get_ng_vectors()
+    # x_test, y_test = get_ng_vectors()
+    # c = Classify(x_train, y_train, x_test, y_test, 1000)
+    # c.start()
+    # print("Spambase")
+    # c = Classify(*spam_base())
+    # c.start()
+    # print("PROBLEM 2 : PCA library on MNIST")
+    # print("A")
+    # print("MNIST")
+    # c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
+    # c.pca()
+    # print("Spambase")
+    # c = Classify(*spam_base())
+    # c.pca(D=[10,20,30,40,50,60])
     print("MNIST")
     MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
     c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
-    c.start()
-    print("20 NG")
-    x_train, y_train = get_ng_vectors()
-    x_test, y_test = get_ng_vectors()
-    c = Classify(x_train, y_train, x_test, y_test, 1000)
-    c.start()
-    print("Spambase")
-    c = Classify(*spam_base())
-    c.start()
+    c.custom_pca()
