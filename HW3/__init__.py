@@ -1,0 +1,1 @@
+DATA_DIR = '/Users/aman/workspace/DataMining/'

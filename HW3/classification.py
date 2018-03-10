@@ -1,52 +1,92 @@
-from sklearn import linear_model
+import pandas as pd
+from sklearn import linear_model, tree
 import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.decomposition import PCA
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import accuracy_score
 from tensorflow.examples.tutorials.mnist import input_data
 
-from HW2 import DATA_DIR
+from HW3 import DATA_DIR
 
 
 class Classify(object):
-    iterations = 6
     top = 30
 
-    def __init__(self, X, Y, x_test, y_test):
+    def __init__(self, X, Y, x_test, y_test, top=30):
         self.X = X
         self.Y = Y
         self.x_test = x_test
         self.y_test = y_test
+        self.top = top
+
+    def lr(self, X, Y, x_test, y_test, lr=linear_model.LogisticRegression()):
+        lr.fit(X, Y)
+        labels = lr.predict(x_test)
+        print "accuracy: ", accuracy_score(y_test, labels)
 
     def logistic_regression(self):
-        logistic = linear_model.LogisticRegression()
-        logistic.fit(self.X, self.Y)
-        labels = logistic.predict(self.x_test)
-        print logistic.coef_
-        return labels
+        lr = linear_model.LogisticRegression()
+        self.lr(self.X, self.Y, self.x_test, self.y_test, lr)
+        index = []
+        for row in range(lr.coef_.shape[0]):
+            index.extend(np.argpartition(lr.coef_[0], -self.top)[-self.top:])
+        index = list(set(index))
+        self.lr(self.X[:, index], self.Y, self.x_test[:, index], self.y_test, lr)
 
-    def cal_purity(self, prediction, labels):
-        """
-        :return: : returns the purity and the gini coeff
-        :rtype: float,float
-        """
-        # cal_purity(gmm.predict(FMNIST[:, :-1]), 2, FMNIST[:, [-1]], FMNIST[:, [-1]].shape[0], True)
-        purity = 0.0
-        K = np.unique(prediction).shape[0]
-        print "clusters " + str(K)
-        SIZE = labels.shape[0]
-        for i in range(K):
-            indexes = np.argwhere(prediction == i)
-            counts = np.bincount(labels[indexes.transpose()[0]])
-            purity += counts.max()
-        purity = purity / SIZE
-        print "purity " + str(purity)
-        return purity
+    def decision_tree(self, param=None):
+        if param:
+            clf = tree.DecisionTreeClassifier(max_features=30)
+        else:
+            clf = tree.DecisionTreeClassifier()
+        clf.fit(self.X, self.Y)
+        labels = clf.predict(self.x_test)
+        print "accuracy: ", accuracy_score(self.y_test, labels)
+
+    def decision_tree_param_tuner(self):
+        self.decision_tree()
+        self.decision_tree(dict(max_features=30))
+
+    def pca(self, D=(5, 20)):
+        for d in D:
+            pca = PCA(n_components=5)
+            X_new = pca.fit(self.X, self.Y)
+            self.lr(X_new, self.Y, pca.transform(self.x_test), self.y_test)
 
     def start(self):
-        for i in range(self.iterations):
-            predictions = self.logistic_regression()
-            self.cal_purity(predictions, self.y_test)
+        print("logistic regression")
+        self.logistic_regression()
+        print("decision tree")
+        self.decision_tree_param_tuner()
+
+
+def get_ng_vectors(mode='train'):
+    NG_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset=mode, remove=('headers', 'footers', 'quotes'), )
+    labels = NG_DATA.target
+    vec = TfidfVectorizer(stop_words='english').fit_transform(NG_DATA.data).todense()
+    return vec, labels
+
+
+def spam_base():
+    data = pd.read_csv(DATA_DIR + 'spambase/spambase.data', header=None)
+    data.rename(columns={57: 'is_spam'}, inplace=True)
+    target = data.pop('is_spam')
+    # todo double check the working
+    X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.4, random_state=0)
+    return X_train.values, y_train.values, X_test.values, y_test.values
 
 
 if __name__ == '__main__':
+    print("MNIST")
     MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
     c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
+    c.start()
+    print("20 NG")
+    x_train, y_train = get_ng_vectors()
+    x_test, y_test = get_ng_vectors()
+    c = Classify(x_train, y_train, x_test, y_test, 1000)
+    c.start()
+    print("Spambase")
+    c = Classify(*spam_base())
     c.start()
