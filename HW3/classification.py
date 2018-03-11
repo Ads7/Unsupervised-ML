@@ -1,5 +1,7 @@
+from random import randint
+
 import pandas as pd
-from sklearn import linear_model, tree
+from sklearn import linear_model, tree, feature_selection
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import fetch_20newsgroups
@@ -26,8 +28,17 @@ class Classify(object):
         labels = lr.predict(x_test)
         print "accuracy: ", accuracy_score(y_test, labels)
 
-    def logistic_regression(self):
-        lr = linear_model.LogisticRegression()
+    def lasso(self):
+        lr = linear_model.Lasso()
+        self.lr(self.X, self.Y, self.x_test, self.y_test, lr)
+        index = []
+        for row in range(lr.coef_.shape[0]):
+            index.extend(np.argpartition(lr.coef_[0], -self.top)[-self.top:])
+        index = list(set(index))
+        self.lr(self.X[:, index], self.Y, self.x_test[:, index], self.y_test, lr)
+
+    def logistic_regression(self, penalty='l2'):
+        lr = linear_model.LogisticRegression(penalty=penalty)
         self.lr(self.X, self.Y, self.x_test, self.y_test, lr)
         index = []
         for row in range(lr.coef_.shape[0]):
@@ -67,15 +78,28 @@ class Classify(object):
         eig_pairs = [(np.abs(eig_vals[i]), eig_vecs[:, i]) for i in range(len(eig_vals))]
         eig_pairs.sort(key=lambda x: x[0], reverse=True)
         for d in [5, 20]:
+            # todo change to generic
             w = np.hstack([x[1].reshape(784, 1) for x in eig_pairs[:d]])
             self.lr(self.X.dot(w), self.Y, self.x_test.dot(w), self.y_test)
+
+    def chi_sq(self):
+        func = feature_selection.SelectKBest(score_func=feature_selection.chi2, k=200)
+        func = func.fit(self.X, self.Y)
+        self.lr(func.transform(self.X), self.Y, func.transform(self.x_test), self.Y)
+        func = feature_selection.SelectKBest(score_func=feature_selection.mutual_info_classif, k=200)
+        func = func.fit(self.X, self.Y)
+        self.lr(func.transform(self.X), self.Y, func.transform(self.x_test), self.Y)
 
 
 def get_ng_vectors(mode='train'):
     NG_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset=mode, remove=('headers', 'footers', 'quotes'), )
     labels = NG_DATA.target
     vec = TfidfVectorizer(stop_words='english').fit_transform(NG_DATA.data).todense()
-    return vec[:10000, :], labels[:10000, :]
+    return vec, labels
+
+
+def haar_feature_extractor():
+    recs = randint(1, 100)
 
 
 def spam_base():
@@ -109,7 +133,15 @@ if __name__ == '__main__':
     # print("Spambase")
     # c = Classify(*spam_base())
     # c.pca(D=[10,20,30,40,50,60])
-    print("MNIST")
-    MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
-    c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
-    c.custom_pca()
+    # print("PROBLEM 3 : Implement PCA on MNIST")
+    # print("MNIST")
+    # MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
+    # c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
+    # c.custom_pca()
+    # print("PROBLEM 4 : Pairwise Feature selection for text")
+    x_train, y_train = get_ng_vectors()
+    x_test, y_test = get_ng_vectors()
+    c = Classify(x_train, y_train, x_test, y_test, 200)
+    # c.chi_sq()
+    print("l1")
+    c.lasso()
