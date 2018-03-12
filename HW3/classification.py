@@ -3,11 +3,14 @@ from random import randint
 import pandas as pd
 from sklearn import linear_model, tree, feature_selection
 import numpy as np
+from sklearn.feature_selection import SelectFromModel
+from sklearn.linear_model import LassoCV
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score
+from sklearn.svm import LinearSVC
 from tensorflow.examples.tutorials.mnist import input_data
 
 from HW3 import DATA_DIR
@@ -29,20 +32,20 @@ class Classify(object):
         print "accuracy: ", accuracy_score(y_test, labels)
 
     def lasso(self):
-        lr = linear_model.Lasso()
-        self.lr(self.X, self.Y, self.x_test, self.y_test, lr)
-        index = []
-        for row in range(lr.coef_.shape[0]):
-            index.extend(np.argpartition(lr.coef_[0], -self.top)[-self.top:])
-        index = list(set(index))
-        self.lr(self.X[:, index], self.Y, self.x_test[:, index], self.y_test, lr)
+        clf = LinearSVC(penalty='l1',C=0.065,dual=False)
+        self.lr(self.X,self.Y,self.x_test,self.y_test)
+        sfm = SelectFromModel(clf)
+        sfm.fit(self.X, self.Y)
+        n_features = sfm.transform(self.X).shape[1]
+        print(n_features)
+        self.lr(sfm.transform(self.X), self.Y, sfm.transform(self.x_test), self.y_test)
 
     def logistic_regression(self, penalty='l2'):
         lr = linear_model.LogisticRegression(penalty=penalty)
         self.lr(self.X, self.Y, self.x_test, self.y_test, lr)
         index = []
         for row in range(lr.coef_.shape[0]):
-            index.extend(np.argpartition(lr.coef_[0], -self.top)[-self.top:])
+            index.extend(np.argpartition(lr.coef_[row], -self.top)[-self.top:])
         index = list(set(index))
         self.lr(self.X[:, index], self.Y, self.x_test[:, index], self.y_test, lr)
 
@@ -61,6 +64,7 @@ class Classify(object):
 
     def pca(self, D=(5, 20)):
         for d in D:
+            print d
             pca = PCA(n_components=d)
             X_new = pca.fit(self.X, self.Y)
             self.lr(X_new, self.Y, pca.transform(self.x_test), self.y_test)
@@ -94,12 +98,23 @@ class Classify(object):
 def get_ng_vectors(mode='train'):
     NG_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset=mode, remove=('headers', 'footers', 'quotes'), )
     labels = NG_DATA.target
-    vec = TfidfVectorizer(stop_words='english').fit_transform(NG_DATA.data).todense()
+    vec = TfidfVectorizer(sublinear_tf=True, max_df=0.5, stop_words='english').fit_transform(NG_DATA.data)
     return vec, labels
 
 
-def haar_feature_extractor():
-    recs = randint(1, 100)
+def get_rec():
+    l = randint(5, 23)
+    b = 150 / l
+    x, y = abs(27 - l), abs(27 - b)
+
+
+# def get_black_pixels():
+
+# def haar_feature_extractor(data):
+#     for image in data:
+#         image.reshape([28,28])
+#         for i in range(28):
+#             for j in range(28):
 
 
 def spam_base():
@@ -119,7 +134,7 @@ if __name__ == '__main__':
     # c.start()
     # print("20 NG")
     # x_train, y_train = get_ng_vectors()
-    # x_test, y_test = get_ng_vectors()
+    # x_test, y_test = x_train, y_train
     # c = Classify(x_train, y_train, x_test, y_test, 1000)
     # c.start()
     # print("Spambase")
@@ -140,7 +155,7 @@ if __name__ == '__main__':
     # c.custom_pca()
     # print("PROBLEM 4 : Pairwise Feature selection for text")
     x_train, y_train = get_ng_vectors()
-    x_test, y_test = get_ng_vectors()
+    x_test, y_test = x_train, y_train
     c = Classify(x_train, y_train, x_test, y_test, 200)
     # c.chi_sq()
     print("l1")
