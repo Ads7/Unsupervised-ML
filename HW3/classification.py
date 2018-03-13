@@ -10,6 +10,7 @@ from sklearn.datasets import fetch_20newsgroups
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import normalize
 from sklearn.svm import LinearSVC
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -32,8 +33,8 @@ class Classify(object):
         print "accuracy: ", accuracy_score(y_test, labels)
 
     def lasso(self):
-        clf = LinearSVC(penalty='l1',C=0.065,dual=False)
-        self.lr(self.X,self.Y,self.x_test,self.y_test)
+        clf = LinearSVC(penalty='l1', C=0.065, dual=False)
+        self.lr(self.X, self.Y, self.x_test, self.y_test)
         sfm = SelectFromModel(clf)
         sfm.fit(self.X, self.Y)
         n_features = sfm.transform(self.X).shape[1]
@@ -62,12 +63,12 @@ class Classify(object):
         self.decision_tree()
         self.decision_tree(dict(max_features=30))
 
-    def pca(self, D=(5, 20)):
+    def pca(self, D=[5, 20]):
         for d in D:
             print d
             pca = PCA(n_components=d)
-            X_new = pca.fit(self.X, self.Y)
-            self.lr(X_new, self.Y, pca.transform(self.x_test), self.y_test)
+            pca.fit(self.X, self.Y)
+            self.lr(pca.transform(self.X), self.Y, pca.transform(self.x_test), self.y_test)
 
     def start(self):
         print("logistic regression")
@@ -102,19 +103,105 @@ def get_ng_vectors(mode='train'):
     return vec, labels
 
 
-def get_rec():
-    l = randint(5, 23)
-    b = 150 / l
-    x, y = abs(27 - l), abs(27 - b)
+class Rec(object):
+    def __init__(self, l=None):
+        if l:
+            self.l = l
+        else:
+            self.l = randint(6, 20)
+        self.b = 150 / self.l
+        self.top_l = (randint(0, 27 - self.l), randint(0, 27 - self.b))
+        self.top_r = (self.top_l[0] + self.l, self.top_l[1])
+        self.bottom_l = (self.top_l[0], self.top_l[1] + self.b)
+        self.bottom_r = (self.top_l[0] + self.l, self.top_l[1] + self.b)
+        self.v_mid_top = (self.top_l[0] + self.l / 2, self.top_l[1])
+        self.v_mid_bottom = [self.top_l[0] + self.l / 2, self.top_l[1] + self.b]
+        self.h_mid_l = (self.top_l[0], self.top_l[1] + self.b / 2)
+        self.h_mid_r = (self.top_l[0] + self.l, self.top_l[1] + self.b / 2)
+
+    # def flip(self):
+    #     rec = Rec(l=self.l)
+    #     self.top_l = (0, 0)
+    #     self.top_r = (self.l, 0)
+    #     self.bottom_l = (0, self.b)
+    #     self.bottom_r = (self.l, self.b)
+    #     self.v_mid_top = (self.l / 2, 0)
+    #     self.v_mid_bottom = [self.l / 2, self.b]
+    #     self.h_mid_l = (0, self.b / 2)
+    #     self.h_mid_r = (self.l, self.b / 2)
+    #     return rec
+
+    def get_v_feature(self, image):
+        image = image.reshape([28, 28])
+        left = image[self.v_mid_bottom[0]][self.v_mid_bottom[1]] - image[self.bottom_l[0]][self.bottom_l[1]] - image[
+            self.v_mid_top[0]][self.v_mid_top[1]] + image[self.top_l[0]][self.top_l[1]]
+        right = image[self.bottom_r[0]][self.bottom_r[1]] - image[self.v_mid_bottom[0]][self.v_mid_bottom[1]] - image[
+            self.top_r[0]][self.top_r[1]] + image[self.v_mid_top[0]][self.v_mid_top[1]]
+        if right < left:
+            pass
+        return right - left
+
+    def get_h_feature(self, image):
+        image = image.reshape([28, 28])
+        top = image[self.h_mid_r[0]][self.h_mid_r[1]] - image[self.top_r[0]][self.top_r[1]] - image[self.h_mid_l[0]][
+            self.h_mid_l[1]] + image[self.top_l[0]][self.top_l[1]]
+        bottom = image[self.bottom_r[0]][self.bottom_r[1]] - image[self.h_mid_r[0]][self.h_mid_r[1]] - image[
+            self.bottom_l[0]][self.bottom_l[1]] + image[self.h_mid_l[0]][self.h_mid_l[1]]
+        if bottom < top:
+            pass
+        return bottom - top
 
 
-# def get_black_pixels():
+class PixelCheck(object):
 
-# def haar_feature_extractor(data):
-#     for image in data:
-#         image.reshape([28,28])
-#         for i in range(28):
-#             for j in range(28):
+    def __init__(self, image):
+        self.image = image
+
+    def is_black(self, i, j):
+        return 1 if self.image[i][j] == 0 else 0
+
+    def get_left(self, i, j):
+        if j - 1 < 0:
+            return 0
+        return self.image[i][j - 1]
+
+    def get_diag(self, i, j):
+        if j - 1 < 0:
+            return 0
+        if i - 1 < 0:
+            return 0
+        return self.image[i - 1][j - 1]
+
+    def get_top(self, i, j):
+        if i - 1 < 0:
+            return 0
+        return self.image[i - 1][j]
+
+    def update(self, i, j):
+        self.image[i][j] = self.is_black(i, j) - self.get_diag(i, j) + self.get_left(i, j) + self.get_top(i, j)
+
+
+def haar_feature_extractor(images):
+    #  updating image vector
+    for image in images:
+        image = image.reshape([28, 28])
+        pix = PixelCheck(image)
+        for i in range(28):
+            for j in range(28):
+                pix.update(i, j)
+    features = np.zeros((images.shape[0], 200))
+    rectangles = []
+    for i in range(100):
+        rectangles.append(Rec())
+    # for i in range(50):
+    #     rectangles.append(rectangles[i].flip())
+    count = 0
+    for image in images:
+        for i, rec in enumerate(rectangles):
+            features[count][i * 2] = rec.get_v_feature(image)
+            features[count][(i * 2) + 1] = rec.get_h_feature(image)
+        count += 1
+    return features
 
 
 def spam_base():
@@ -127,36 +214,41 @@ def spam_base():
 
 
 if __name__ == '__main__':
-    # print("PROBLEM 1: Supervised Classification")
-    # print("MNIST")
-    # MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
-    # c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
-    # c.start()
-    # print("20 NG")
-    # x_train, y_train = get_ng_vectors()
-    # x_test, y_test = x_train, y_train
-    # c = Classify(x_train, y_train, x_test, y_test, 1000)
-    # c.start()
-    # print("Spambase")
-    # c = Classify(*spam_base())
-    # c.start()
-    # print("PROBLEM 2 : PCA library on MNIST")
-    # print("A")
-    # print("MNIST")
-    # c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
-    # c.pca()
-    # print("Spambase")
-    # c = Classify(*spam_base())
-    # c.pca(D=[10,20,30,40,50,60])
-    # print("PROBLEM 3 : Implement PCA on MNIST")
-    # print("MNIST")
-    # MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
-    # c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
-    # c.custom_pca()
-    # print("PROBLEM 4 : Pairwise Feature selection for text")
+    print("PROBLEM 1: Supervised Classification")
+    print("MNIST")
+    MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
+    c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
+    c.start()
+    print("20 NG")
+    x_train, y_train = get_ng_vectors()
+    x_test, y_test = x_train, y_train
+    c = Classify(x_train, y_train, x_test, y_test, 1000)
+    c.start()
+    print("Spambase")
+    c = Classify(*spam_base())
+    c.start()
+    print("PROBLEM 2 : PCA library on MNIST")
+    print("A")
+    print("MNIST")
+    c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
+    c.pca()
+    print("Spambase")
+    c = Classify(*spam_base())
+    c.pca(D=[10, 20, 30, 40, 50])
+    print("PROBLEM 3 : Implement PCA on MNIST")
+    print("MNIST")
+    MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
+    c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
+    c.custom_pca()
+    print("PROBLEM 4 : Pairwise Feature selection for text")
     x_train, y_train = get_ng_vectors()
     x_test, y_test = x_train, y_train
     c = Classify(x_train, y_train, x_test, y_test, 200)
-    # c.chi_sq()
+    c.chi_sq()
     print("l1")
     c.lasso()
+    MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
+    c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
+    c.lr(haar_feature_extractor(MNIST.train.images[:500, :]), MNIST.train.labels[:500],
+         haar_feature_extractor(MNIST.test.images[:500, :]),
+         MNIST.test.labels[:500])
