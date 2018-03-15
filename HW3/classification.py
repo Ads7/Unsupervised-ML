@@ -4,13 +4,12 @@ import pandas as pd
 from sklearn import linear_model, tree, feature_selection
 import numpy as np
 from sklearn.feature_selection import SelectFromModel
-from sklearn.linear_model import LassoCV
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import normalize
 from sklearn.svm import LinearSVC
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -48,16 +47,25 @@ class Classify(object):
         for row in range(lr.coef_.shape[0]):
             index.extend(np.argpartition(lr.coef_[row], -self.top)[-self.top:])
         index = list(set(index))
+        self.plot_image(self.X[:5, index], index)
         self.lr(self.X[:, index], self.Y, self.x_test[:, index], self.y_test, lr)
 
     def decision_tree(self, param=None):
-        if param:
-            clf = tree.DecisionTreeClassifier(max_features=30)
-        else:
-            clf = tree.DecisionTreeClassifier()
+        if not param:
+            param = self.top
+        clf = tree.DecisionTreeClassifier()
         clf.fit(self.X, self.Y)
-        labels = clf.predict(self.x_test)
+        index = np.argpartition(clf.feature_importances_, -param)[param:]
+        labels = clf.predict(self.x_test[:, index])
         print "accuracy: ", accuracy_score(self.y_test, labels)
+
+    def plot_image(self, images, indexes):
+        for image in images:
+            new_image = np.zeros(784)
+            new_image[indexes] = image
+            plt.figure()
+            plt.imshow(new_image.reshape(28, 28))
+        plt.show()
 
     def decision_tree_param_tuner(self):
         self.decision_tree()
@@ -83,8 +91,7 @@ class Classify(object):
         eig_pairs = [(np.abs(eig_vals[i]), eig_vecs[:, i]) for i in range(len(eig_vals))]
         eig_pairs.sort(key=lambda x: x[0], reverse=True)
         for d in [5, 20]:
-            # todo change to generic
-            w = np.hstack([x[1].reshape(784, 1) for x in eig_pairs[:d]])
+            w = np.hstack([x[1].reshape(self.X.shape[1], 1) for x in eig_pairs[:d]])
             self.lr(self.X.dot(w), self.Y, self.x_test.dot(w), self.y_test)
 
     def chi_sq(self):
@@ -158,7 +165,7 @@ class PixelCheck(object):
         self.image = image
 
     def is_black(self, i, j):
-        return 1 if self.image[i][j] == 0 else 0
+        return 0 if self.image[i][j] == 0 else 1
 
     def get_left(self, i, j):
         if j - 1 < 0:
@@ -208,7 +215,6 @@ def spam_base():
     data = pd.read_csv(DATA_DIR + 'spambase/spambase.data', header=None)
     data.rename(columns={57: 'is_spam'}, inplace=True)
     target = data.pop('is_spam')
-    # todo double check the working
     X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.4, random_state=0)
     return X_train.values, y_train.values, X_test.values, y_test.values
 
@@ -245,8 +251,9 @@ if __name__ == '__main__':
     x_test, y_test = x_train, y_train
     c = Classify(x_train, y_train, x_test, y_test, 200)
     c.chi_sq()
-    print("l1")
+    print("PROBLEM 5 : L1 feature selection on text")
     c.lasso()
+    print("PROBLEM 6 : HARR features for MNIST")
     c = Classify(MNIST.train.images, MNIST.train.labels, MNIST.test.images, MNIST.test.labels)
     c.lr(haar_feature_extractor(MNIST.train.images[:1000, :]), MNIST.train.labels[:1000],
          haar_feature_extractor(MNIST.test.images[:500, :]),
