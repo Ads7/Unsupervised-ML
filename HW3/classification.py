@@ -106,7 +106,7 @@ class Classify(object):
 def get_ng_vectors(mode='train'):
     NG_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset=mode, remove=('headers', 'footers', 'quotes'), )
     labels = NG_DATA.target
-    vec = TfidfVectorizer(sublinear_tf=True, max_df=0.5, stop_words='english').fit_transform(NG_DATA.data)
+    vec = TfidfVectorizer(min_df=2, max_df=0.5, stop_words='english').fit_transform(NG_DATA.data).todense()
     return vec, labels
 
 
