@@ -113,7 +113,7 @@ if __name__ == '__main__':
         print 'mode: ' + mode
         labels = MNIST.test.labels
         vectors = MNIST.test.images
-        if mode == 'train':
+        if mode == TRAIN:
             labels = MNIST.train.labels
             vectors = MNIST.train.images
         MNIST_Kmeans(X=vectors, Y=labels)
@@ -125,7 +125,7 @@ if __name__ == '__main__':
         print 'mode: ' + mode
         min_df = 3
         max_df = 0.6
-        if mode == 'train':
+        if mode == TRAIN:
             min_df = 4
             max_df = 0.8
         vectors = TfidfVectorizer(stop_words='english', min_df=min_df, max_df=max_df).fit_transform(
