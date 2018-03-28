@@ -112,4 +112,4 @@ venv.bak/
 .idea/*
 "Icon\r"
 *.out
-log/*
+*/log/*
