@@ -1,37 +1,33 @@
-# 2gaussian.txt
-# 3gaussian.txt
-# mean_1 [3,3]); cov_1 = [[1,0],[0,3]]; n1=2000 points
-# mean_2 =[7,4]; cov_2 = [[1,0.5],[0.5,1]]; ; n2=4000 points
 import random
 
 import numpy as np
 from sklearn import mixture
 
 from HW2 import DATA_DIR
-import seaborn as sns
-
-# For plotting
-import matplotlib.pyplot as plt
-# for normalization + probability density function computation
 from scipy import stats
 
 
 class GMM(object):
     SIZE = None
-    MAX_ITR = 100
+    MAX_ITR = 100  # max iteration for stopping criteria
     responsibilities = None
     mu = None  # means
     sigma = None  # variance
     weights = []
-    TOLERANCE = 1.e-4
+    TOLERANCE = 1.e-4  # tolerance factor for stopping criteria
     X = None
     dimension = None
     K = 2
     p_clus = None
 
-    def __init__(self, k=2, path="2gaussian.txt"):
+    def __init__(self, k=2, filename="2gaussian.txt"):
+        """
+
+        :param k: int number of gaussian mixture
+        :param filename: filename for the data file
+        """
         self.K = k
-        self.X = self.file_to_vec(path)
+        self.X = self.file_to_vec(filename)
         self.SIZE, self.dimension = self.X.shape
 
         #  assigning equal weights to all
@@ -42,18 +38,21 @@ class GMM(object):
         self.sigma = [np.identity(self.dimension) for i in range(k)]
         self.p_clus = np.zeros((self.SIZE, self.K))
 
-    def file_to_vec(self, path):
+    @staticmethod
+    def file_to_vec(filename):
+        """
+
+        :type filename: string take filename and converts to numpy vectors
+        """
         print "Loading data"
-        vectors = np.genfromtxt(DATA_DIR + '/' + path, delimiter=' ')
+        vectors = np.genfromtxt(DATA_DIR + '/' + filename, delimiter=' ')
         print "Data loaded"
         return vectors
 
-    # def pdf(self, sigma, mu, x):
-    #     stats.multivariate_normal.pdf(x=x,sigma)
-    #     return (1.0 / np.sqrt(((2 * np.pi) ** self.dimension / 2) * np.linalg.det(sigma))) * np.exp(
-    #         -0.5 * (x-mu).dot(np.linalg.inv(sigma)).dot((x-mu).T))
-
     def expectation(self):
+        """
+        Updates the membership probabilities
+        """
         for j in range(self.K):
             self.p_clus[:, j] = self.weights[j] * np.apply_along_axis(
                 lambda x: stats.multivariate_normal.pdf(x=x, cov=self.sigma[j], mean=self.mu[j]), 1, self.X)
@@ -62,6 +61,9 @@ class GMM(object):
         self.p_clus = self.p_clus / tmp[:, None]
 
     def maximisation(self):
+        """
+        Updates the mean and weights factors
+        """
         for i in range(self.K):
             p = self.p_clus[:, [i]]
             self.mu[i] = np.sum(p * self.X, axis=0) / np.sum(p)
@@ -70,6 +72,9 @@ class GMM(object):
             self.sigma[i] = np.dot(np.transpose(tmp), np.multiply(tmp, p)) / np.sum(p)
 
     def start(self):
+        """
+        To initiate the training process
+        """
         ex = 0
         while ex < self.MAX_ITR:
             old = self.p_clus.copy()
@@ -86,15 +91,6 @@ class GMM(object):
             print self.sigma[i]
             print(pos[i])
 
-
-# class SGMM(GMM):
-#     TOLERANCE = 1.e-3
-#
-#     def file_to_vec(self, path):
-#         print "Loading data"
-#         FMNIST = np.genfromtxt(DATA_DIR + path, delimiter=',')
-#         print "Data loaded"
-#         return FMNIST[:,:-1]
 
 def cal_purity(distances, K, labels, SIZE, check=False):
     """
@@ -144,7 +140,7 @@ if __name__ == '__main__':
     g = GMM()
     g.start()
     print("3gaussian.txt")
-    g = GMM(k=3, path="3gaussian.txt")
+    g = GMM(k=3, filename="3gaussian.txt")
     g.start()
     print("Question 4")
     gmm_fashion()
