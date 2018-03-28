@@ -24,29 +24,23 @@ class Kmeans(object):
     is_distance_based = True
     mode = TEST
 
-    def __init__(self, k=10, mode=TEST):
+    def __init__(self, X, Y, k=10, mode=TEST):
         """
         :param k(int): number of clusters to consider default 10
         """
         self.K = k
-        self.mode = mode
+        self.labels = Y
+        self.vectors = X
         self.initialize()
         self.start()
 
     def start(self):
         self.create_clusters()
 
-    def init_vectors(self):  # can be replaced with abstract decorator in python3
-        """
-            :return numpy array: vectors of the dataset
-        """
-        raise NotImplementedError
-
     def initialize(self):
         """
             to initialise vectors, its size and randomly allocated centroids
         """
-        self.init_vectors()
         self.SIZE = self.vectors.shape[0]
         # todo can use max distance to allocation farthest apart points
         self.centroids = self.vectors[[random.randint(1, self.SIZE) for x in range(self.K)], :]
@@ -111,63 +105,47 @@ class MNIST_Kmeans(Kmeans):
             plt.imshow(self.centroids[i].reshape([28, 28]), cmap='gray')
         plt.show()
 
-    def init_vectors(self):
-        MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
-        self.labels = MNIST.train.labels if self.mode == TRAIN else MNIST.test.labels
-        self.vectors = MNIST.train.images if self.mode == TRAIN else MNIST.test.images
-
-
-class NG_Kmeans(Kmeans):
-    def init_vectors(self):
-        NEWS_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset=self.mode, remove=('headers', 'footers', 'quotes'), )
-        self.labels = NEWS_DATA.target
-        min_df = 3
-        max_df = 0.6
-        if self.mode == TRAIN:
-            min_df = 4
-            max_df = 0.8
-        self.vectors = TfidfVectorizer(stop_words='english', min_df=min_df, max_df=max_df).fit_transform(
-            NEWS_DATA.data).todense()
-
-
-class FMNIST_Kmeans(Kmeans):
-    @staticmethod
-    def array_to_image(X, path):
-        """
-
-        :param X: a 784 column numpy array
-        :param path: file location to save the file
-        """
-        X.reshape([28, 28])
-        scipy.misc.imsave(path, X)
-
-    def init_vectors(self):
-        print "Loading data"
-        FMNIST = np.genfromtxt(DATA_DIR + '/fashionmnist/fashion-mnist_' + self.mode + '.csv', delimiter=',')
-        print "Data loaded"
-        self.labels = FMNIST[1:-1, 0].astype(int)
-        self.vectors = FMNIST[1:-1, 1:]
-
 
 if __name__ == '__main__':
     print "Starting with MNSIT data"
     print 'mode: test'
-    MNIST_Kmeans()
+    MNIST = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
+    labels = MNIST.train.labels
+    vectors = MNIST.train.images
+    MNIST_Kmeans(X=vectors, Y=labels)
     print "------------------------"
     print 'mode: train'
-    MNIST_Kmeans(mode=TRAIN)
+    labels = MNIST.test.labels
+    vectors = MNIST.test.images
+    MNIST_Kmeans(X=vectors, Y=labels, mode=TRAIN)
     print "------------------------"
     print "Starting with news group data"
     print 'mode: test'
-    NG_Kmeans(20)
+    NEWS_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset='test', remove=('headers', 'footers', 'quotes'), )
+    labels = NEWS_DATA.target
+    min_df = 3
+    max_df = 0.6
+
+    vectors = TfidfVectorizer(stop_words='english', min_df=min_df, max_df=max_df).fit_transform(
+        NEWS_DATA.data).todense()
+    Kmeans(X=vectors, Y=labels, k=20)
     print "------------------------"
     print 'mode: train'
-    NG_Kmeans(k=20, mode=TRAIN)
-    print "------------------------"
-    print "Starting with fashion data"
-    print 'mode: test'
-    FMNIST_Kmeans()
-    print "------------------------"
-    print 'mode: train'
-    FMNIST_Kmeans(mode=TRAIN)
-    print "------------------------"
+    NEWS_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset='train', remove=('headers', 'footers', 'quotes'), )
+    labels = NEWS_DATA.target
+    min_df = 4
+    max_df = 0.8
+    vectors = TfidfVectorizer(stop_words='english', min_df=min_df, max_df=max_df).fit_transform(
+        NEWS_DATA.data).todense()
+    Kmeans(X=vectors, Y=labels, k=20, mode=TRAIN)
+    for mode in ['train', 'test']:
+        print "Loading data"
+        FMNIST = np.genfromtxt(DATA_DIR + '/fashionmnist/fashion-mnist_' + mode + '.csv', delimiter=',')
+        print "Data loaded"
+        labels = FMNIST[1:-1, 0].astype(int)
+        vectors = FMNIST[1:-1, 1:]
+        print "------------------------"
+        print "Starting with fashion data"
+        print 'mode: ' + mode
+        Kmeans(X=vectors, Y=labels, mode=mode)
+        print "------------------------"

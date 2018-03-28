@@ -12,7 +12,7 @@ mnist = input_data.read_data_sets(DATA_DIR + "MNIST_data/")
 
 # Training Parameters
 learning_rate = 0.01
-num_steps = 30000
+num_steps = 15000
 batch_size = 256
 
 display_step = 1000
@@ -73,7 +73,7 @@ y_true = X
 
 # Define loss and optimizer, minimize the squared error
 loss = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
-optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(loss)
+optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()

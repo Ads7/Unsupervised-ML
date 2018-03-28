@@ -1,13 +1,9 @@
 from __future__ import division, print_function, absolute_import
-
 import tensorflow as tf
-import numpy as np
-import matplotlib.pyplot as plt
-# Import MNIST data
+
 from sklearn.datasets import fetch_20newsgroups
-from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfVectorizer
-from tensorflow.examples.tutorials.mnist import input_data
+
 
 from HW3 import DATA_DIR
 
@@ -24,9 +20,9 @@ def get_ng_vectors(mode='train'):
     # transform to 5000 inputs
     # labels = tf.convert_to_tensor(labels, dtype=tf.int32)
     # vec = tf.convert_to_tensor(vec, dtype=tf.float32)
-    rows = 15000
-    if mode == 'test':
-        rows = 5000
+    rows = 5000
+    # if mode == 'test':
+    #     rows = 5000
     return vec[:rows], labels[:rows]
 
 
@@ -53,9 +49,9 @@ def neural_net(x_dict):
     # Hidden fully connected layer with 256 neurons
     layer_1 = tf.layers.dense(x, n_hidden_1)
     # Hidden fully connected layer with 256 neurons
-    layer_2 = tf.layers.dense(layer_1, n_hidden_2)
+    # layer_2 = tf.layers.dense(layer_1, n_hidden_2)
     # Output fully connected layer with a neuron for each class
-    out_layer = tf.layers.dense(layer_2, num_classes)
+    out_layer = tf.layers.dense(layer_1, num_classes)
     return out_layer
 
 
@@ -80,7 +76,7 @@ def model_fn(features, labels, mode):
 
     # Evaluate the accuracy of the model
     acc_op = tf.metrics.accuracy(labels=labels, predictions=pred_classes)
-
+    print(acc_op)
     # TF Estimators requires to return a EstimatorSpec, that specify
     # the different ops for training, evaluating, ...
     estim_specs = tf.estimator.EstimatorSpec(
@@ -98,25 +94,9 @@ model = tf.estimator.Estimator(model_fn)
 
 # Train the Model
 print(model.train(input_fn, steps=num_steps))
-
+# print(model.evaluate(input_fn))
 vec_test, labels_test = get_ng_vectors()
 input_fn = tf.estimator.inputs.numpy_input_fn(x={'images': vec_test}, y=labels_test, batch_size=batch_size,
                                               shuffle=False)
 # Use the Estimator 'evaluate' method
 print(model.evaluate(input_fn))
-
-# Predict single images
-# n_images = 4
-# # Get images from test set
-# test_images = mnist.test.images[:n_images]
-# # Prepare the input data
-# input_fn = tf.estimator.inputs.numpy_input_fn(
-#     x={'images': test_images}, shuffle=False)
-# # Use the model to predict the images class
-# preds = list(model.predict(input_fn))
-
-# # Display
-# for i in range(n_images):
-#     plt.imshow(np.reshape(test_images[i], [28, 28]), cmap='gray')
-#     plt.show()
-#     print("Model prediction:", preds[i])

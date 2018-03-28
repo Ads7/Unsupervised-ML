@@ -80,7 +80,7 @@ input_fn = tf.estimator.inputs.numpy_input_fn(
     x={'images': mnist.test.images}, y=mnist.test.labels,
     batch_size=batch_size, shuffle=False)
 # Use the Estimator 'evaluate' method
-model.evaluate(input_fn)
+print(model.evaluate(input_fn))
 
 # Predict single images
 n_images = 4

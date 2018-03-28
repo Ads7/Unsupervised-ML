@@ -1,0 +1,2 @@
+model_checkpoint_path: "/Users/aman/Dropbox/CS6220_Amandeep_Singh/HW4/log/model.ckpt"
+all_model_checkpoint_paths: "/Users/aman/Dropbox/CS6220_Amandeep_Singh/HW4/log/model.ckpt"
