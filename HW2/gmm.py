@@ -44,9 +44,9 @@ class GMM(object):
 
         :type filename: string take filename and converts to numpy vectors
         """
-        print "Loading data"
+        print("Loading data")
         vectors = np.genfromtxt(DATA_DIR + '/' + filename, delimiter=' ')
-        print "Data loaded"
+        print("Data loaded")
         return vectors
 
     def expectation(self):
@@ -83,12 +83,12 @@ class GMM(object):
             if np.allclose(self.p_clus, old, atol=self.TOLERANCE):
                 break
             ex += 1
-            print ex
+            print(ex)
         pos = np.bincount(np.argmax(self.p_clus, axis=1))
-        print 'iterations taken: ', ex
+        print('iterations taken: ', ex)
         for i in range(self.K):
-            print self.mu[i]
-            print self.sigma[i]
+            print(self.mu[i])
+            print(self.sigma[i])
             print(pos[i])
 
 
@@ -118,20 +118,20 @@ def gmm_fashion():
     print("data loaded")
     gmm = mixture.GaussianMixture(n_components=10, covariance_type='diag')
     gmm.fit(data.train.images)
-    print "cov", gmm.covariances_
-    print "mean", gmm.means_
-    print "purity", cal_purity(gmm.predict(data.train.images), 10, data.train.labels, data.train.images.shape[0])
+    print("cov", gmm.covariances_)
+    print("mean", gmm.means_)
+    print("purity", cal_purity(gmm.predict(data.train.images), 10, data.train.labels, data.train.images.shape[0]))
     gmm.predict(data.train.images)
-    print np.mean(gmm.predict(data.train.images).ravel() == data.train.labels.ravel())
+    print(np.mean(gmm.predict(data.train.images).ravel() == data.train.labels.ravel()))
 
     # running Spam emails
     print("running spam emails")
     gmm = mixture.GaussianMixture(n_components=2, covariance_type='diag')
     FMNIST = np.genfromtxt(DATA_DIR + '/spambase.data', delimiter=',')
     gmm.fit(FMNIST[:, :-1])
-    print "cov", gmm.covariances_
-    print "mean", gmm.means_
-    print "purity", cal_purity(gmm.predict(FMNIST[:, :-1]), 2, FMNIST[:, [-1]], FMNIST[:, [-1]].shape[0], True)
+    print("cov", gmm.covariances_)
+    print("mean", gmm.means_)
+    print("purity", cal_purity(gmm.predict(FMNIST[:, :-1]), 2, FMNIST[:, [-1]], FMNIST[:, [-1]].shape[0], True))
     print(np.mean(gmm.predict(FMNIST[:, :-1]).ravel() == FMNIST[:, [-1]].ravel()))
 
 
