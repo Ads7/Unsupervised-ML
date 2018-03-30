@@ -11,7 +11,6 @@ from HW3 import DATA_DIR
 def get_ng_vectors(mode='train'):
     NG_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset=mode, remove=('headers', 'footers', 'quotes'), )
     labels = NG_DATA.target
-
     #  pca for dimension reduction
     vec = TfidfVectorizer(min_df=2, max_df=0.5, stop_words='english').fit_transform(NG_DATA.data).todense()
     # pca = PCA(n_components=5000)
@@ -20,22 +19,21 @@ def get_ng_vectors(mode='train'):
     # transform to 5000 inputs
     # labels = tf.convert_to_tensor(labels, dtype=tf.int32)
     # vec = tf.convert_to_tensor(vec, dtype=tf.float32)
-    rows = 5000
     # if mode == 'test':
     #     rows = 5000
-    return vec[:rows], labels[:rows]
+    return vec, labels
 
 
 vec, labels = get_ng_vectors()
 # Parameters
-learning_rate = 0.1
+learning_rate = 0.01
 num_steps = 1000
 batch_size = 128
 display_step = 100
 
 # Network Parameters
 n_hidden_1 = 1000  # 1st layer number of neurons
-n_hidden_2 = 1000  # 2nd layer number of neurons
+# n_hidden_2 = 1000  # 2nd layer number of neurons
 num_input = vec.shape[1]  # MNIST data input (img shape: 28*28)
 num_classes = 20  # MNIST total classes (0-20 classes)
 input_fn = tf.estimator.inputs.numpy_input_fn(x={'images': vec}, y=labels, batch_size=batch_size, num_epochs=None,
@@ -71,7 +69,7 @@ def model_fn(features, labels, mode):
         # Define loss and optimizer
     loss_op = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits=logits, labels=tf.cast(labels, dtype=tf.int32)))
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     train_op = optimizer.minimize(loss_op, global_step=tf.train.get_global_step())
 
     # Evaluate the accuracy of the model

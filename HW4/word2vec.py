@@ -31,11 +31,14 @@ import numpy as np
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
+from sklearn.datasets import fetch_20newsgroups
 
 from tensorflow.contrib.tensorboard.plugins import projector
 
 # Give a folder path as an argument with '--log_dir' to save
 # TensorBoard summaries. Default is a log folder in current directory.
+from HW2 import DATA_DIR
+
 current_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 
 parser = argparse.ArgumentParser()
@@ -55,34 +58,34 @@ url = 'http://mattmahoney.net/dc/'
 
 
 # pylint: disable=redefined-outer-name
-def maybe_download(filename, expected_bytes):
-  """Download a file if not present, and make sure it's the right size."""
-  local_filename = os.path.join(gettempdir(), filename)
-  if not os.path.exists(local_filename):
-    local_filename, _ = urllib.request.urlretrieve(url + filename,
-                                                   local_filename)
-  statinfo = os.stat(local_filename)
-  if statinfo.st_size == expected_bytes:
-    print('Found and verified', filename)
-  else:
-    print(statinfo.st_size)
-    raise Exception('Failed to verify ' + local_filename +
-                    '. Can you get to it with a browser?')
-  return local_filename
-
-
-filename = maybe_download('text8.zip', 31344016)
+# def maybe_download(filename, expected_bytes):
+#   """Download a file if not present, and make sure it's the right size."""
+#   local_filename = os.path.join(gettempdir(), filename)
+#   if not os.path.exists(local_filename):
+#     local_filename, _ = urllib.request.urlretrieve(url + filename,
+#                                                    local_filename)
+#   statinfo = os.stat(local_filename)
+#   if statinfo.st_size == expected_bytes:
+#     print('Found and verified', filename)
+#   else:
+#     print(statinfo.st_size)
+#     raise Exception('Failed to verify ' + local_filename +
+#                     '. Can you get to it with a browser?')
+#   return local_filename
+#
+#
+# filename = maybe_download('text8.zip', 31344016)
 
 
 # Read the data into a list of strings.
-def read_data(filename):
+def read_data():
   """Extract the first file enclosed in a zip file as a list of words."""
-  with zipfile.ZipFile(filename) as f:
-    data = tf.compat.as_str(f.read(f.namelist()[0])).split()
+  NEWS_DATA = fetch_20newsgroups(data_home=DATA_DIR, subset='train', remove=('headers', 'footers', 'quotes'), )
+  data = tf.compat.as_str(" ".join(NEWS_DATA.data)).split()
   return data
 
 
-vocabulary = read_data(filename)
+vocabulary = read_data()
 print('Data size', len(vocabulary))
 
 # Step 2: Build the dictionary and replace rare words with UNK token.
@@ -224,7 +227,7 @@ with graph.as_default():
     optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
 
   # Compute the cosine similarity between minibatch examples and all embeddings.
-  norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
+  norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keepdims=True))
   normalized_embeddings = embeddings / norm
   valid_embeddings = tf.nn.embedding_lookup(normalized_embeddings,
                                             valid_dataset)
