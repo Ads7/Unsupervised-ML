@@ -349,6 +349,7 @@ try:
     plot_only = 500
     low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only, :])
     labels = [reverse_dictionary[i] for i in xrange(plot_only)]
+    print(gettempdir())
     plot_with_labels(low_dim_embs, labels, os.path.join(gettempdir(), 'tsne.png'))
 
 except ImportError as ex:
