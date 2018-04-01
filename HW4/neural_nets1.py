@@ -2,6 +2,7 @@ from __future__ import division, print_function, absolute_import
 import tensorflow as tf
 
 from sklearn.datasets import fetch_20newsgroups
+from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
@@ -13,15 +14,15 @@ def get_ng_vectors(mode='train'):
     labels = NG_DATA.target
     #  pca for dimension reduction
     vec = TfidfVectorizer(min_df=2, max_df=0.5, stop_words='english').fit_transform(NG_DATA.data).todense()
-    # pca = PCA(n_components=5000)
-    # pca.fit(vec, labels)
+    pca = PCA(n_components=200)
+    pca.fit(vec, labels)
 
     # transform to 5000 inputs
     # labels = tf.convert_to_tensor(labels, dtype=tf.int32)
     # vec = tf.convert_to_tensor(vec, dtype=tf.float32)
     # if mode == 'test':
     #     rows = 5000
-    return vec, labels
+    return pca.transform(vec), labels
 
 
 vec, labels = get_ng_vectors()
@@ -98,3 +99,9 @@ input_fn = tf.estimator.inputs.numpy_input_fn(x={'images': vec_test}, y=labels_t
                                               shuffle=False)
 # Use the Estimator 'evaluate' method
 print(model.evaluate(input_fn))
+# (<tf.Tensor 'accuracy/value:0' shape=() dtype=float32>, <tf.Tensor 'accuracy/update_op:0' shape=() dtype=float32>)
+# WARNING:tensorflow:Using temporary folder as model directory: /var/folders/w2/fc3gpg596dn25lwfmf6lm_040000gn/T/tmp4d32uw
+# 2018-03-31 01:25:39.471419: I tensorflow/core/platform/cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+# <tensorflow.python.estimator.estimator.Estimator object at 0x11929e990>
+# (<tf.Tensor 'accuracy/value:0' shape=() dtype=float32>, <tf.Tensor 'accuracy/update_op:0' shape=() dtype=float32>)
+# {'loss': 1.4499538, 'global_step': 1000, 'accuracy': 0.5856461}
