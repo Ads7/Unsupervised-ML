@@ -32,6 +32,7 @@ from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from sklearn.datasets import fetch_20newsgroups
+from sklearn.metrics.pairwise import cosine_similarity
 
 from tensorflow.contrib.tensorboard.plugins import projector
 
@@ -58,15 +59,15 @@ url = 'http://mattmahoney.net/dc/'
 
 
 # pylint: disable=redefined-outer-name
-# def maybe_download(filename, expected_bytes):
+# def maybe_download(FILENAMES, expected_bytes):
 #   """Download a file if not present, and make sure it's the right size."""
-#   local_filename = os.path.join(gettempdir(), filename)
+#   local_filename = os.path.join(gettempdir(), FILENAMES)
 #   if not os.path.exists(local_filename):
-#     local_filename, _ = urllib.request.urlretrieve(url + filename,
+#     local_filename, _ = urllib.request.urlretrieve(url + FILENAMES,
 #                                                    local_filename)
 #   statinfo = os.stat(local_filename)
 #   if statinfo.st_size == expected_bytes:
-#     print('Found and verified', filename)
+#     print('Found and verified', FILENAMES)
 #   else:
 #     print(statinfo.st_size)
 #     raise Exception('Failed to verify ' + local_filename +
@@ -74,7 +75,7 @@ url = 'http://mattmahoney.net/dc/'
 #   return local_filename
 #
 #
-# filename = maybe_download('text8.zip', 31344016)
+# FILENAMES = maybe_download('text8.zip', 31344016)
 
 
 # Read the data into a list of strings.
@@ -120,8 +121,8 @@ def build_dataset(words, n_words):
 data, count, dictionary, reverse_dictionary = build_dataset(
     vocabulary, vocabulary_size)
 del vocabulary  # Hint to reduce memory.
-print('Most common words (+UNK)', count[:5])
-print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
+# print('Most common words (+UNK)', count[:5])
+# print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
 
 data_index = 0
 
@@ -338,7 +339,13 @@ def plot_with_labels(low_dim_embs, labels, filename):
 
     plt.savefig(filename)
 
-
+def get_words(word):
+    res = []
+    for k in reverse_dictionary:
+        if reverse_dictionary[k]==word:
+            res = np.argpartition(cosine_similarity(final_embeddings[40], final_embeddings), -20)[-20:]
+    for r in res:
+        print(labels[r])
 try:
     # pylint: disable=g-import-not-at-top
     from sklearn.manifold import TSNE

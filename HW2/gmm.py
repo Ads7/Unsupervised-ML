@@ -24,7 +24,7 @@ class GMM(object):
         """
 
         :param k: int number of gaussian mixture
-        :param filename: filename for the data file
+        :param filename: FILENAMES for the data file
         """
         self.K = k
         self.X = self.file_to_vec(filename)
@@ -42,7 +42,7 @@ class GMM(object):
     def file_to_vec(filename):
         """
 
-        :type filename: string take filename and converts to numpy vectors
+        :type filename: string take FILENAMES and converts to numpy vectors
         """
         print("Loading data")
         vectors = np.genfromtxt(DATA_DIR + '/' + filename, delimiter=' ')

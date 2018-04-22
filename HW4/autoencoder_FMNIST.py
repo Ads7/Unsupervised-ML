@@ -127,10 +127,10 @@ for i in range(n):
 
 print("Original Images")
 plt.figure(figsize=(n, n))
-plt.imshow(canvas_orig, origin="upper", cmap="gray")
+plt.imshow(canvas_orig, origin="upper")
 plt.show()
 
 print("Reconstructed Images")
 plt.figure(figsize=(n, n))
-plt.imshow(canvas_recon, origin="upper", cmap="gray")
+plt.imshow(canvas_recon, origin="upper")
 plt.show()
